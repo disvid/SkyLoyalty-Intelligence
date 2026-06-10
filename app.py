@@ -654,9 +654,7 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
                 self.set_y(-15)
                 self.set_font("Helvetica", "I", 8)
                 self.set_text_color(100, 116, 139)
-                self.cell(0, 10,
-                    f"SkyLoyalty Intelligence Platform  |  Page {self.page_no()}",
-                    align="C")
+                self.cell(0, 10, f"SkyLoyalty Intelligence Platform | Page {self.page_no()}", align="C")
 
         pdf = PDF()
         pdf.add_page()
@@ -737,16 +735,16 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
         row("Health Score", f"{hs.get('score', 0)}/100")
         row("Status",       hs.get("status", ""))
 
-        # Final output handling
-        output = pdf.output()
-        if isinstance(output, str):
-            output = output.encode("latin1", errors='replace')
-        elif not isinstance(output, (bytes, bytearray)):
-            output = str(output).encode("latin1", errors='replace')
+        # FIXED: Reliable way to get bytes
+        pdf_output = pdf.output(dest='S')   # 'S' = return as string
+        if isinstance(pdf_output, str):
+            pdf_bytes = pdf_output.encode('latin1', errors='replace')
+        else:
+            pdf_bytes = pdf_output
 
-        return output, "pdf", "application/pdf"
+        return pdf_bytes, "pdf", "application/pdf"
 
-    except Exception:
+    except Exception as e:
         # TXT Fallback
         lines = [
             "CUSTOMER INTELLIGENCE REPORT",
