@@ -1,9 +1,3 @@
-"""
-app.py
-------
-Streamlit dashboard — premium futuristic SaaS UI with integrated Customer 360.
-"""
-
 import os
 import sys
 import textwrap
@@ -14,7 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
-
+import streamlit.components.v1 as components
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -411,8 +405,6 @@ SEG_PALETTE = [
     "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"
 ]
 
-def clean_html(markup): return textwrap.dedent(markup).strip()
-def render_html(markup): st.markdown(clean_html(markup), unsafe_allow_html=True)
 # ── Data helpers ───────────────────────────────────────────────────────────────
 
 @st.cache_data(show_spinner=False)
@@ -873,8 +865,8 @@ def render_customer_360():
     for col, (val, lbl, clr, sub) in zip(cols, kpis):
         with col:
             st.markdown(c360_kpi(val, lbl, clr, sub), unsafe_allow_html=True)
-
-    st.markdown(c360_card(f"""
+    components.html(
+        c360_card(f"""
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:1rem;">
         {"".join(f'''
         <div>
@@ -890,7 +882,27 @@ def render_customer_360():
             ("Province",       ov["province"]),
         ])}
     </div>
-    """), unsafe_allow_html=True)
+    """),
+        height=200,
+        scrolling=False
+    )
+    # st.markdown(c360_card(f"""
+    # <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:1rem;">
+    #     {"".join(f'''
+    #     <div>
+    #         <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em;
+    #                     color:{_muted}; margin-bottom:4px;">{lbl}</div>
+    #         <div style="font-weight:500; color:{_text};">{val}</div>
+    #     </div>''' for lbl, val in [
+    #         ("Customer ID",    customer_id),
+    #         ("Enrollment",     ov["enrollment_type"]),
+    #         ("Education",      ov["education"]),
+    #         ("Marital Status", ov["marital_status"]),
+    #         ("Gender",         ov["gender"]),
+    #         ("Province",       ov["province"]),
+    #     ])}
+    # </div>
+    # """), unsafe_allow_html=True)
 
     # ── SECTION 2 — CHURN ANALYSIS ─────────────────────────────────────────────
     st.markdown(c360_section("ti-alert-triangle", "Churn Analysis"), unsafe_allow_html=True)
@@ -916,8 +928,8 @@ def render_customer_360():
                 ("Critical Risk", 80, 100,"#7C3AED"),
             ]
         ])
-
-        st.markdown(c360_card(f"""
+        components.html(
+            c360_card(f"""
         <div style="margin-bottom:1rem;">
             {c360_badge(ch['risk_category'], ch['risk_color'])}
         </div>
@@ -940,7 +952,34 @@ def render_customer_360():
                         color:{_muted}; margin-bottom:8px;">Risk thresholds</div>
             {threshold_rows}
         </div>
-        """, "margin-top:0.5rem;"), unsafe_allow_html=True)
+        """, "margin-top:0.5rem;"),
+            height=350,
+            scrolling=False
+        )
+        # st.markdown(c360_card(f"""
+        # <div style="margin-bottom:1rem;">
+        #     {c360_badge(ch['risk_category'], ch['risk_color'])}
+        # </div>
+        # <div style="font-family:'Space Grotesk',sans-serif; font-size:2.5rem;
+        #             font-weight:700; color:{ch['risk_color']}; line-height:1;">
+        #     {ch['probability_pct']}%
+        # </div>
+        # <div style="font-size:0.8rem; color:{_muted}; margin-top:4px; margin-bottom:1rem;">
+        #     Churn probability
+        # </div>
+        # <div style="font-size:0.75rem; color:{_dim}; margin-bottom:4px;">Risk level</div>
+        # {c360_progress(ch['probability_pct'], ch['risk_color'])}
+        # <div style="display:flex; justify-content:space-between;
+        #             font-size:0.7rem; color:{_muted}; margin-top:4px;">
+        #     <span>0% Low</span><span>30% Medium</span>
+        #     <span>60% High</span><span>80% Critical</span>
+        # </div>
+        # <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid {_border};">
+        #     <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+        #                 color:{_muted}; margin-bottom:8px;">Risk thresholds</div>
+        #     {threshold_rows}
+        # </div>
+        # """, "margin-top:0.5rem;"), unsafe_allow_html=True)
 
     # ── SECTION 3 — TOP CHURN DRIVERS ──────────────────────────────────────────
     st.markdown(c360_section("ti-bulb", "Top Churn Drivers"), unsafe_allow_html=True)
@@ -959,7 +998,8 @@ def render_customer_360():
     seg_c1, seg_c2 = st.columns([3, 2])
 
     with seg_c1:
-        st.markdown(c360_card(f"""
+        components.html(
+            c360_card(f"""
         <div style="margin-bottom:0.8rem;">
             <span style="display:inline-block; padding:0.3rem 1rem; border-radius:20px;
                          font-size:0.82rem; font-weight:600;
@@ -998,7 +1038,50 @@ def render_customer_360():
                 </div>
             </div>
         </div>
-        """), unsafe_allow_html=True)
+        """),
+            height=260,
+            scrolling=False
+        )
+        # st.markdown(c360_card(f"""
+        # <div style="margin-bottom:0.8rem;">
+        #     <span style="display:inline-block; padding:0.3rem 1rem; border-radius:20px;
+        #                  font-size:0.82rem; font-weight:600;
+        #                  background:rgba(139,92,246,0.15); color:#8B5CF6;
+        #                  border:1px solid rgba(139,92,246,0.3);">
+        #         {sg['name']}
+        #     </span>
+        # </div>
+        # <div style="font-size:0.85rem; color:{_dim}; line-height:1.6; margin-bottom:1rem;">
+        #     {sg['description']}
+        # </div>
+        # <div style="padding-top:1rem; border-top:1px solid {_border};
+        #             display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem;">
+        #     <div>
+        #         <div style="font-size:0.68rem; text-transform:uppercase;
+        #                     letter-spacing:0.08em; color:{_muted};">Segment Size</div>
+        #         <div style="font-family:'Space Grotesk',sans-serif; font-size:1.2rem;
+        #                     font-weight:700; color:{_text}; margin-top:2px;">
+        #             {sg['count']:,}
+        #         </div>
+        #     </div>
+        #     <div>
+        #         <div style="font-size:0.68rem; text-transform:uppercase;
+        #                     letter-spacing:0.08em; color:{_muted};">Avg Churn</div>
+        #         <div style="font-family:'Space Grotesk',sans-serif; font-size:1.2rem;
+        #                     font-weight:700; color:#EF4444; margin-top:2px;">
+        #             {sg['avg_churn']*100:.1f}%
+        #         </div>
+        #     </div>
+        #     <div>
+        #         <div style="font-size:0.68rem; text-transform:uppercase;
+        #                     letter-spacing:0.08em; color:{_muted};">Avg CLV</div>
+        #         <div style="font-family:'Space Grotesk',sans-serif; font-size:1.2rem;
+        #                     font-weight:700; color:#10B981; margin-top:2px;">
+        #             ${sg['avg_clv']:,.0f}
+        #         </div>
+        #     </div>
+        # </div>
+        # """), unsafe_allow_html=True)
 
     with seg_c2:
         r_s = sg.get("r_score", 0)
@@ -1027,9 +1110,14 @@ def render_customer_360():
             )
             st.plotly_chart(fig_radar, use_container_width=True)
         else:
-            st.markdown(c360_card(
-                f'<div style="text-align:center; padding:2rem; color:{_muted};">RFM scores not available</div>'
-            ), unsafe_allow_html=True)
+            components.html(
+                c360_card(f'<div style="text-align:center; padding:2rem; color:{_muted};">RFM scores not available</div>'),
+                height=180,
+                scrolling=False
+            )
+            # st.markdown(c360_card(
+            #     f'<div style="text-align:center; padding:2rem; color:{_muted};">RFM scores not available</div>'
+            # ), unsafe_allow_html=True)
 
     # ── SECTION 5 — FLIGHT BEHAVIOUR ───────────────────────────────────────────
     st.markdown(c360_section("ti-plane", "Flight Behaviour"), unsafe_allow_html=True)
@@ -1113,8 +1201,8 @@ def render_customer_360():
                 <div style="font-size:0.78rem; font-weight:600; color:{bar_color};
                             width:40px; text-align:right;">{val:+.1f}</div>
             </div>"""
-
-        st.markdown(c360_card(f"""
+        components.html(
+            c360_card(f"""
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:1rem;">
             <div style="font-family:'Space Grotesk',sans-serif; font-size:2.5rem;
                         font-weight:700; color:{va['color']}; line-height:1;">{va['score']}</div>
@@ -1129,7 +1217,26 @@ def render_customer_360():
         <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
                     color:{_muted}; margin-bottom:8px;">Score components</div>
         {comp_bars}
-        """), unsafe_allow_html=True)
+        """),
+            height=310,
+            scrolling=False
+        )
+        # st.markdown(c360_card(f"""
+        # <div style="display:flex; align-items:center; gap:12px; margin-bottom:1rem;">
+        #     <div style="font-family:'Space Grotesk',sans-serif; font-size:2.5rem;
+        #                 font-weight:700; color:{va['color']}; line-height:1;">{va['score']}</div>
+        #     <div>
+        #         <div style="font-weight:600; color:{va['color']}; font-size:1rem;">
+        #             {va['category']}</div>
+        #         <div style="font-size:0.75rem; color:{_muted};">out of 100</div>
+        #     </div>
+        # </div>
+        # <div style="font-size:0.82rem; color:{_dim}; line-height:1.6; margin-bottom:1rem;">
+        #     {va['description']}</div>
+        # <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+        #             color:{_muted}; margin-bottom:8px;">Score components</div>
+        # {comp_bars}
+        # """), unsafe_allow_html=True)
 
     # ── SECTION 7 — NEXT BEST ACTION ───────────────────────────────────────────
     st.markdown(c360_section("ti-rocket", "Next Best Action"), unsafe_allow_html=True)
@@ -1246,8 +1353,8 @@ def render_customer_360():
                 ("0-34 Critical",    "#EF4444"),
             ]
         ])
-
-        st.markdown(c360_card(f"""
+        components.html(
+            c360_card(f"""
         <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
                     color:{_muted}; margin-bottom:12px;">Score breakdown</div>
         {health_bars}
@@ -1255,16 +1362,35 @@ def render_customer_360():
                     grid-template-columns:1fr 1fr; gap:6px;">
             {legend}
         </div>
-        """), unsafe_allow_html=True)
+        """),
+            height=280,
+            scrolling=False
+        )
+        # st.markdown(c360_card(f"""
+        # <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+        #             color:{_muted}; margin-bottom:12px;">Score breakdown</div>
+        # {health_bars}
+        # <div style="margin-top:0.8rem; display:grid;
+        #             grid-template-columns:1fr 1fr; gap:6px;">
+        #     {legend}
+        # </div>
+        # """), unsafe_allow_html=True)
 
     # ── SECTION 9 — EXPORT ──────────────────────────────────────────────────────
     st.markdown(c360_section("ti-download", "Export Customer Report"), unsafe_allow_html=True)
 
-    st.markdown(c360_card(
-        f'<div style="font-size:0.85rem; color:{_dim};">'
+    components.html(
+        c360_card(f'<div style="font-size:0.85rem; color:{_dim};">'
         'Download a complete snapshot of this customer\'s intelligence profile.'
-        '</div>'
-    ), unsafe_allow_html=True)
+        '</div>'),
+        height=80,
+        scrolling=False
+    )
+    # st.markdown(c360_card(
+    #     f'<div style="font-size:0.85rem; color:{_dim};">'
+    #     'Download a complete snapshot of this customer\'s intelligence profile.'
+    #     '</div>'
+    # ), unsafe_allow_html=True)
 
     ex_c1, ex_c2, _ = st.columns([1, 1, 3])
 
@@ -1285,7 +1411,6 @@ def render_customer_360():
             mime=mime,
             use_container_width=True
         )
-
 
 # ── Load data ──────────────────────────────────────────────────────────────────
 with st.spinner("Loading loyalty intelligence…"):
