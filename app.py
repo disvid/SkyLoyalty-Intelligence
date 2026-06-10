@@ -1,14 +1,12 @@
 """
 app.py
 ------
-Streamlit dashboard — redesigned with a premium, futuristic SaaS UI.
-All backend logic, variable names, function calls, dataframe operations,
-ML predictions, file paths, imports and data connections are preserved.
-Only the presentation layer (CSS / HTML / layout) has been upgraded.
+Streamlit dashboard — premium futuristic SaaS UI with integrated Customer 360.
 """
 
 import os
 import sys
+import textwrap
 import warnings
 import numpy as np
 import pandas as pd
@@ -26,6 +24,7 @@ from config import (
     MEDIUM_CHURN_RISK_THRESHOLD,
     CUSTOMER_ID_COL
 )
+from src.customer_360 import Customer360
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -44,8 +43,8 @@ LIGHT = st.session_state.theme == "light"
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.30.0/tabler-icons.min.css');
 
-/* ── Root variables ── */
 :root {
     --bg-primary:    #070B16;
     --bg-card:       rgba(20, 28, 46, 0.55);
@@ -66,7 +65,6 @@ st.markdown("""
     --glow:          0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
-/* ── Animated aurora background ── */
 .stApp {
     background:
         radial-gradient(1200px 600px at 8% -10%, rgba(59,130,246,0.10), transparent 60%),
@@ -86,7 +84,6 @@ html, body, [class*="css"] {
     max-width: 1480px;
 }
 
-/* ── Make Streamlit's top header transparent so it doesn't cover titles ── */
 [data-testid="stHeader"] {
     background: rgba(7, 11, 22, 0.0) !important;
     backdrop-filter: blur(6px);
@@ -94,7 +91,6 @@ html, body, [class*="css"] {
 [data-testid="stHeader"]::before { content: none !important; }
 [data-testid="stToolbar"] { right: 1rem; }
 
-/* ── Sidebar ── */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, rgba(11,16,28,0.96) 0%, rgba(15,22,38,0.92) 100%) !important;
     border-right: 1px solid var(--border);
@@ -102,7 +98,6 @@ html, body, [class*="css"] {
 }
 [data-testid="stSidebar"] .block-container { padding: 1.2rem 1rem; }
 
-/* ── Brand block ── */
 .brand-wrap {
     display: flex; align-items: center; gap: 0.8rem;
     padding: 0.4rem 0.2rem 1.1rem 0.2rem;
@@ -126,7 +121,6 @@ html, body, [class*="css"] {
     letter-spacing: 0.12em; text-transform: uppercase; margin-top: 0.25rem;
 }
 
-/* ── Sidebar stats ── */
 .side-stats {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -150,7 +144,6 @@ html, body, [class*="css"] {
     font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.04em;
 }
 
-/* ── Page title ── */
 .page-title {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 2.15rem; font-weight: 700;
@@ -162,7 +155,6 @@ html, body, [class*="css"] {
     font-size: 0.92rem; color: var(--text-muted); margin-bottom: 1.6rem;
 }
 
-/* ── KPI Cards ── */
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
@@ -213,7 +205,6 @@ html, body, [class*="css"] {
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Section headers ── */
 .section-header {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 1.12rem; font-weight: 600; color: var(--text-primary);
@@ -225,7 +216,6 @@ html, body, [class*="css"] {
     margin-left: 0.55rem;
 }
 
-/* ── Risk badges ── */
 .badge {
     display: inline-block; padding: 0.22rem 0.75rem; border-radius: 20px;
     font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em;
@@ -234,7 +224,6 @@ html, body, [class*="css"] {
 .badge-medium { background: rgba(245,158,11,0.15); color: #F59E0B; border: 1px solid rgba(245,158,11,0.3);}
 .badge-low    { background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.3);}
 
-/* ── Insight / persona cards ── */
 .insight-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -248,7 +237,6 @@ html, body, [class*="css"] {
 .insight-title { font-weight: 600; font-size: 0.92rem; color: var(--text-primary); }
 .insight-body  { font-size: 0.83rem; color: var(--text-dim); margin-top: 0.25rem; line-height: 1.5; }
 
-/* ── Result count pill ── */
 .result-pill {
     display: inline-flex; align-items: center; gap: 0.5rem;
     background: var(--bg-card); border: 1px solid var(--border);
@@ -257,14 +245,12 @@ html, body, [class*="css"] {
 }
 .result-pill b { color: var(--accent-blue); font-family: 'Space Grotesk', sans-serif; }
 
-/* ── Dataframe styling ── */
 [data-testid="stDataFrame"] {
     border: 1px solid var(--border) !important;
     border-radius: 14px; overflow: hidden;
     box-shadow: var(--glow);
 }
 
-/* ── Metric overrides ── */
 [data-testid="stMetric"] {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -276,7 +262,6 @@ html, body, [class*="css"] {
     font-size: 1.7rem !important; font-weight: 700 !important;
 }
 
-/* ── Buttons ── */
 .stButton > button {
     background: linear-gradient(135deg, #3B82F6, #06B6D4) !important;
     color: white !important; border: none !important; border-radius: 10px !important;
@@ -286,7 +271,6 @@ html, body, [class*="css"] {
 }
 .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(59,130,246,0.5) !important; }
 
-/* ── Selectbox / inputs ── */
 .stSelectbox > div > div,
 .stTextInput > div > div,
 .stMultiSelect > div > div {
@@ -296,7 +280,6 @@ html, body, [class*="css"] {
     backdrop-filter: blur(10px);
 }
 
-/* ── Download button ── */
 .stDownloadButton > button {
     background: rgba(59,130,246,0.1) !important; color: var(--accent-blue) !important;
     border: 1px solid rgba(59,130,246,0.3) !important; border-radius: 10px !important;
@@ -304,7 +287,6 @@ html, body, [class*="css"] {
 }
 .stDownloadButton > button:hover { background: rgba(59,130,246,0.22) !important; }
 
-/* ── Radio nav (sidebar) ── */
 [data-testid="stSidebar"] .stRadio > div { gap: 0.25rem; }
 [data-testid="stSidebar"] .stRadio label {
     background: transparent; border-radius: 10px; padding: 0.55rem 0.8rem;
@@ -313,7 +295,6 @@ html, body, [class*="css"] {
 }
 [data-testid="stSidebar"] .stRadio label:hover { background: rgba(59,130,246,0.10); }
 
-/* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] { gap: 0.4rem; }
 .stTabs [data-baseweb="tab"] {
     background: var(--bg-card); border: 1px solid var(--border);
@@ -323,35 +304,35 @@ html, body, [class*="css"] {
     background: rgba(59,130,246,0.16) !important; color: var(--accent-blue) !important;
 }
 
-/* ── Expander ── */
 .streamlit-expanderHeader, [data-testid="stExpander"] summary {
     background: var(--bg-card) !important; border-radius: 10px !important;
 }
 
-/* ── Divider ── */
 hr { border-color: var(--border) !important; margin: 1rem 0 !important; }
 
-/* ── Alert / info boxes ── */
 .stAlert { border-radius: 12px !important; backdrop-filter: blur(8px); }
 
-/* ── Plotly chart containers ── */
-.js-plotly-plot { border-radius: 14px; }
+.js-plotly-plot { border-radius: 14px; width: 100% !important; }
+[data-testid="stPlotlyChart"] { min-height: 240px; }
 
-/* ── Footer ── */
 .app-footer {
     text-align: center; margin-top: 2.5rem; padding-top: 1.4rem;
     border-top: 1px solid var(--border);
     font-size: 0.78rem; color: var(--text-muted); letter-spacing: 0.03em;
 }
 
-/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+@media (max-width: 900px) {
+    [data-testid="column"] { width: 100% !important; flex: 1 1 100% !important; }
+}
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.30.0/tabler-icons.min.css">
 """, unsafe_allow_html=True)
 
-# ── Light theme override (injected only when light mode is active) ───────────────
+# ── Light theme override ────────────────────────────────────────────────────────
 if LIGHT:
     st.markdown("""
     <style>
@@ -382,9 +363,17 @@ if LIGHT:
     </style>
     """, unsafe_allow_html=True)
 
-# ── Plotly theme (adapts to light / dark) ───────────────────────────────────────
+# ── Theme-aware tokens (used by both dashboard + Customer 360) ────────────────
 _grid  = "#D5DEEA" if LIGHT else "#1e2d45"
 _fcol  = "#475569" if LIGHT else "#94A3B8"
+_card  = "#FFFFFF" if LIGHT else "#111827"
+_card_t= "rgba(255,255,255,0.85)" if LIGHT else "rgba(17,24,39,0.9)"
+_border= "rgba(30,60,110,0.14)" if LIGHT else "#1e2d45"
+_text  = "#0F1B2D" if LIGHT else "#F1F5F9"
+_muted = "#5A6B85" if LIGHT else "#64748B"
+_dim   = "#475569" if LIGHT else "#94A3B8"
+_chartbg = "#FFFFFF" if LIGHT else "#0A0E1A"
+
 PLOT_THEME = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
@@ -396,9 +385,6 @@ PLOT_THEME = dict(
 
 
 def themed(**overrides):
-    """Return PLOT_THEME merged with overrides (deep-merging axis dicts)
-    so callers can safely pass their own xaxis/yaxis without colliding
-    with the base theme keys."""
     base = {
         k: (dict(v) if isinstance(v, dict) else v)
         for k, v in PLOT_THEME.items()
@@ -409,6 +395,8 @@ def themed(**overrides):
         else:
             base[k] = v
     return base
+
+
 COLORS = {
     "blue":   "#3B82F6",
     "cyan":   "#06B6D4",
@@ -423,7 +411,8 @@ SEG_PALETTE = [
     "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"
 ]
 
-
+def clean_html(markup): return textwrap.dedent(markup).strip()
+def render_html(markup): st.markdown(clean_html(markup), unsafe_allow_html=True)
 # ── Data helpers ───────────────────────────────────────────────────────────────
 
 @st.cache_data(show_spinner=False)
@@ -449,6 +438,11 @@ def load_all_data():
     return segments, scores, recs, metrics, features, labels, shap_imp
 
 
+@st.cache_resource(show_spinner=False)
+def get_c360():
+    return Customer360()
+
+
 def risk_badge(p: float) -> str:
     if p >= HIGH_CHURN_RISK_THRESHOLD:
         return '🔴 High'
@@ -466,9 +460,6 @@ def risk_label(p: float) -> str:
 
 
 def kpi_card(value: str, label: str, color: str, delta: str = "") -> str:
-    # IMPORTANT: keep this HTML free of leading indentation. Streamlit's
-    # Markdown renderer treats lines indented by 4+ spaces as a code block,
-    # which makes the raw <div> tags appear on screen instead of rendering.
     delta_html = f'<div class="kpi-delta">{delta}</div>' if delta else ""
     return (
         f'<div class="kpi-card" style="--accent-color:{color};">'
@@ -500,12 +491,807 @@ def apply_plot_theme(fig: go.Figure, height: int = 380) -> go.Figure:
     return fig
 
 
+def clean_html(markup: str) -> str:
+    return textwrap.dedent(markup).strip()
+
+
+def render_html(markup: str) -> None:
+    st.markdown(clean_html(markup), unsafe_allow_html=True)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CUSTOMER 360 — helper builders (theme-aware, inline styles only)
+# ════════════════════════════════════════════════════════════════════════════
+
+def c360_gauge(value: float, color: str, title: str, suffix: str = "%") -> go.Figure:
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=round(value, 1),
+        number={"suffix": suffix,
+                "font": {"size": 32, "color": _text, "family": "Space Grotesk"}},
+        gauge={
+            "axis": {"range": [0, 100], "tickcolor": _muted,
+                     "tickfont": {"color": _muted, "size": 10}},
+            "bar":  {"color": color, "thickness": 0.25},
+            "bgcolor": _chartbg,
+            "borderwidth": 0,
+            "steps": [
+                {"range": [0,  30],  "color": "rgba(16,185,129,0.08)"},
+                {"range": [30, 60],  "color": "rgba(245,158,11,0.08)"},
+                {"range": [60, 80],  "color": "rgba(239,68,68,0.08)"},
+                {"range": [80, 100], "color": "rgba(124,58,237,0.08)"},
+            ],
+            "threshold": {"line": {"color": color, "width": 3},
+                          "thickness": 0.75, "value": value},
+        },
+        title={"text": title, "font": {"color": _muted, "size": 12}},
+    ))
+    fig.update_layout(height=240, **PLOT_THEME)
+    return fig
+
+
+def c360_section(icon: str, title: str) -> str:
+    return clean_html(f"""
+    <div style="display:flex; align-items:center; gap:8px;
+                margin:2rem 0 0.8rem 0; font-family:'Space Grotesk',sans-serif;
+                font-size:0.72rem; font-weight:600; letter-spacing:0.12em;
+                text-transform:uppercase; color:{_muted};">
+        <i class="ti {icon}" style="font-size:15px;"></i>
+        {title}
+        <div style="flex:1; height:1px; background:{_border}; margin-left:6px;"></div>
+    </div>""")
+
+
+def c360_kpi(value: str, label: str, color: str, sub: str = "") -> str:
+    return clean_html(f"""
+    <div style="background:{_card}; border:1px solid {_border}; border-radius:12px;
+                padding:1rem 1.2rem; position:relative; overflow:hidden; flex:1; min-width:140px;">
+        <div style="position:absolute; top:0; left:0; right:0; height:3px;
+                    background:{color}; border-radius:12px 12px 0 0;"></div>
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:1.4rem;
+                    font-weight:700; color:{color}; line-height:1.2;">{value}</div>
+        <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em;
+                    color:{_muted}; margin-top:3px;">{label}</div>
+        {"<div style='font-size:0.75rem; color:" + _dim + "; margin-top:3px;'>" + sub + "</div>" if sub else ""}
+    </div>""")
+
+
+def c360_card(content: str, extra_style: str = "") -> str:
+    return clean_html(f"""
+    <div style="background:{_card_t}; border:1px solid {_border};
+                border-radius:14px; padding:1.2rem 1.4rem; margin-bottom:0.8rem;
+                {extra_style}">
+        {content}
+    </div>""")
+
+
+def c360_badge(text: str, color: str) -> str:
+    return clean_html(f"""
+    <span style="display:inline-flex; align-items:center; gap:6px;
+                 padding:0.35rem 1rem; border-radius:20px; font-size:0.82rem;
+                 font-weight:600; background:{color}1A;
+                 color:{color}; border:1px solid {color}40;">
+        {text}
+    </span>""")
+
+
+def c360_progress(pct: float, color: str) -> str:
+    pct = max(0, min(float(pct or 0), 100))
+    return clean_html(f"""
+    <div style="background:{_border}; border-radius:99px; height:8px; margin:6px 0;">
+        <div style="width:{pct:.1f}%; height:8px; border-radius:99px;
+                    background:{color};"></div>
+    </div>""")
+
+
+def c360_driver_card(factor: str, detail: str, impact: str,
+                      direction: str, icon: str) -> str:
+    ic = {"high": COLORS["red"], "medium": COLORS["amber"], "low": COLORS["green"]}.get(impact, COLORS["blue"])
+    dc = COLORS["red"] if direction == "negative" else COLORS["green"]
+    return clean_html(f"""
+    <div style="background:{_card}; border:1px solid {_border}; border-radius:10px;
+                padding:0.8rem 1rem; display:flex; align-items:flex-start;
+                gap:10px; margin-bottom:0.6rem;">
+        <div style="width:32px; height:32px; border-radius:8px; flex-shrink:0;
+                    background:{ic}18; color:{ic}; display:flex;
+                    align-items:center; justify-content:center; font-size:16px;">
+            <i class="ti {icon}"></i>
+        </div>
+        <div style="flex:1;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="font-size:0.85rem; font-weight:600; color:{_text};">{factor}</div>
+                <span style="font-size:0.68rem; font-weight:600; letter-spacing:0.06em;
+                             color:{dc}; text-transform:uppercase;">{impact}</span>
+            </div>
+            <div style="font-size:0.78rem; color:{_dim}; margin-top:2px;">{detail}</div>
+        </div>
+    </div>""")
+
+
+def c360_generate_csv_bytes(profile: dict, cid: str) -> bytes:
+    ov, ch, sg, va, hs, na = (profile[k] for k in
+        ["overview","churn","segment","value","health","next_action"])
+    row = {
+        "customer_id": cid,
+        "loyalty_tier": ov["loyalty_tier"],
+        "enrollment_type": ov["enrollment_type"],
+        "education": ov["education"],
+        "marital_status": ov["marital_status"],
+        "province": ov["province"],
+        "salary": ov["salary"],
+        "clv": ov["clv"],
+        "tenure_months": ov["tenure_months"],
+        "months_inactive": ov["months_inactive"],
+        "churn_probability": ch["probability"],
+        "churn_probability_pct": ch["probability_pct"],
+        "risk_category": ch["risk_category"],
+        "segment": sg["name"],
+        "segment_size": sg["count"],
+        "segment_avg_churn_pct": round(sg["avg_churn"] * 100, 2),
+        "segment_avg_clv": round(sg["avg_clv"], 2),
+        "rfm_score": sg["rfm_score"],
+        "future_value_score": va["score"],
+        "value_category": va["category"],
+        "health_score": hs["score"],
+        "health_status": hs["status"],
+        "recommended_action": na["action"],
+        "channel": na["channel"],
+        "timing": na["timing"],
+        "est_retention_lift": na["est_lift"],
+        "est_roi": na["est_roi"],
+        "top_churn_drivers": "; ".join(d["factor"] for d in profile["drivers"]),
+    }
+    return pd.DataFrame([row]).to_csv(index=False).encode("utf-8")
+
+
+def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
+    """Returns (bytes, extension, mime_type)."""
+    try:
+        from fpdf import FPDF
+
+        class PDF(FPDF):
+            def header(self):
+                self.set_font("Helvetica", "B", 14)
+                self.set_text_color(59, 130, 246)
+                self.cell(0, 10, f"Customer Intelligence Report - {cid}", ln=True)
+                self.set_draw_color(30, 45, 69)
+                self.line(10, 20, 200, 20)
+                self.ln(5)
+
+            def footer(self):
+                self.set_y(-15)
+                self.set_font("Helvetica", "I", 8)
+                self.set_text_color(100, 116, 139)
+                self.cell(0, 10,
+                    f"SkyLoyalty Intelligence Platform  |  Page {self.page_no()}",
+                    align="C")
+
+        pdf = PDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
+
+        def h2(text):
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.set_text_color(59, 130, 246)
+            pdf.cell(0, 8, text, ln=True)
+            pdf.set_text_color(241, 245, 249)
+
+        def row(label, value):
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(148, 163, 184)
+            pdf.cell(60, 6, str(label), ln=False)
+            pdf.set_text_color(241, 245, 249)
+            pdf.cell(0, 6, str(value), ln=True)
+
+        ov = profile["overview"]
+        ch = profile["churn"]
+        sg = profile["segment"]
+        va = profile["value"]
+        hs = profile["health"]
+        na = profile["next_action"]
+
+        h2("1. CUSTOMER OVERVIEW")
+        pdf.ln(2)
+        row("Loyalty Tier",    ov["loyalty_tier"])
+        row("Enrollment Type", ov["enrollment_type"])
+        row("Education",       ov["education"])
+        row("Marital Status",  ov["marital_status"])
+        row("Province",        ov["province"])
+        row("Income",          f"${ov['salary']:,.0f}")
+        row("CLV",             f"${ov['clv']:,.2f}")
+        row("Tenure",          f"{ov['tenure_months']} months")
+        pdf.ln(4)
+
+        h2("2. CHURN ANALYSIS")
+        pdf.ln(2)
+        row("Churn Probability", f"{ch['probability_pct']}%")
+        row("Risk Category",     ch["risk_category"])
+        row("Months Inactive",   ch["months_inactive"])
+        pdf.ln(4)
+
+        h2("3. TOP CHURN DRIVERS")
+        pdf.ln(2)
+        for d in profile["drivers"]:
+            row(d["factor"], d["detail"])
+        pdf.ln(4)
+
+        h2("4. CUSTOMER SEGMENT")
+        pdf.ln(2)
+        row("Segment",       sg["name"])
+        row("Segment Size",  f"{sg['count']:,} customers")
+        row("Avg Churn",     f"{sg['avg_churn']*100:.1f}%")
+        row("Avg CLV",       f"${sg['avg_clv']:,.0f}")
+        row("RFM Score",     f"{sg['rfm_score']:.1f}")
+        pdf.ln(4)
+
+        h2("5. VALUE ASSESSMENT")
+        pdf.ln(2)
+        row("Future Value Score", f"{va['score']}/100")
+        row("Category",           va["category"])
+        pdf.ln(4)
+
+        h2("6. NEXT BEST ACTION")
+        pdf.ln(2)
+        row("Action",    na["action"])
+        row("Channel",   na["channel"])
+        row("Timing",    na["timing"])
+        row("Est. Lift", f"{na['est_lift']*100:.0f}%")
+        row("Est. ROI",  f"${na['est_roi']:,.0f}")
+        pdf.ln(4)
+
+        h2("7. HEALTH SCORE")
+        pdf.ln(2)
+        row("Health Score", f"{hs['score']}/100")
+        row("Status",       hs["status"])
+
+        return bytes(pdf.output()), "pdf", "application/pdf"
+
+    except ImportError:
+        lines = [
+            "CUSTOMER INTELLIGENCE REPORT",
+            f"Customer ID: {cid}", "=" * 50, "",
+            "1. OVERVIEW",
+            f"  Loyalty Tier:  {profile['overview']['loyalty_tier']}",
+            f"  CLV:           ${profile['overview']['clv']:,.2f}",
+            f"  Tenure:        {profile['overview']['tenure_months']} months",
+            f"  Province:      {profile['overview']['province']}", "",
+            "2. CHURN",
+            f"  Probability:   {profile['churn']['probability_pct']}%",
+            f"  Risk Category: {profile['churn']['risk_category']}", "",
+            "3. SEGMENT",
+            f"  Name:          {profile['segment']['name']}",
+            f"  RFM Score:     {profile['segment']['rfm_score']}", "",
+            "4. VALUE",
+            f"  Score:         {profile['value']['score']}/100",
+            f"  Category:      {profile['value']['category']}", "",
+            "5. NEXT BEST ACTION",
+            f"  Action:        {profile['next_action']['action']}",
+            f"  Channel:       {profile['next_action']['channel']}",
+            f"  Timing:        {profile['next_action']['timing']}", "",
+            "6. HEALTH",
+            f"  Score:         {profile['health']['score']}/100",
+            f"  Status:        {profile['health']['status']}",
+        ]
+        return "\n".join(lines).encode("utf-8"), "txt", "text/plain"
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CUSTOMER 360 — main render function (theme-aware, fully integrated)
+# ════════════════════════════════════════════════════════════════════════════
+
+def render_customer_360():
+    st.markdown('<div class="page-title">Customer Intelligence Center</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">Complete 360° profile · Churn risk · Segment · Next best action · Health score</div>', unsafe_allow_html=True)
+
+    with st.spinner("Loading customer data..."):
+        c360 = get_c360()
+
+    all_ids = c360.get_all_customer_ids()
+    if not all_ids:
+        st.error("No customer data found. Run `python run_pipeline.py` first.")
+        return
+
+    if "c360_customer_id" not in st.session_state:
+        st.session_state.c360_customer_id = ""
+
+    sc1, sc2 = st.columns([3, 1])
+    with sc1:
+        typed_id = st.text_input(
+            "Customer ID",
+            placeholder=f"e.g. {all_ids[0]}  ·  {len(all_ids):,} customers available",
+            label_visibility="collapsed",
+            key="c360_customer_search",
+        )
+    with sc2:
+        use_dropdown = st.checkbox("Browse list", value=False, key="c360_browse_list")
+
+    if use_dropdown:
+        current_idx = all_ids.index(st.session_state.c360_customer_id) \
+            if st.session_state.c360_customer_id in all_ids else 0
+        customer_id = st.selectbox(
+            "Select",
+            all_ids,
+            index=current_idx,
+            label_visibility="collapsed",
+            key="c360_customer_select",
+        )
+    else:
+        customer_id = typed_id.strip() or st.session_state.c360_customer_id or None
+
+    if customer_id:
+        st.session_state.c360_customer_id = str(customer_id).strip()
+
+    if not customer_id:
+        render_html(f"""
+        <div style="text-align:center; padding:4rem 2rem; color:{_muted}; font-size:1rem;">
+            <div style="font-size:3rem; margin-bottom:1rem;">🔍</div>
+            Enter a Customer ID above to generate their complete intelligence report.
+        </div>
+        """)
+        return
+
+    with st.spinner(f"Generating profile for {customer_id}..."):
+        profile = c360.get_profile(customer_id)
+
+    if profile is None:
+        render_html(f"""
+        <div style="text-align:center; padding:4rem 2rem; color:{_muted}; font-size:1rem;">
+            <div style="font-size:3rem; margin-bottom:1rem; color:#EF4444;">✗</div>
+            Customer <b style="color:{_text};">{customer_id}</b> not found.
+            Check the ID and try again.
+        </div>
+        """)
+        return
+
+    ov      = profile["overview"]
+    ch      = profile["churn"]
+    sg      = profile["segment"]
+    va      = profile["value"]
+    na      = profile["next_action"]
+    hs      = profile["health"]
+    drivers = profile["drivers"]
+    history = profile["flight_history"]
+
+    # ── SECTION 1 — OVERVIEW ───────────────────────────────────────────────────
+    st.markdown(c360_section("ti-user-circle", "Customer Overview"), unsafe_allow_html=True)
+
+    tier_c = {"star": COLORS["amber"], "aurora": COLORS["blue"], "nova": COLORS["purple"]}.get(
+        ov["loyalty_tier"].lower(), COLORS["blue"]
+    )
+    inact_c = COLORS["red"] if ov["months_inactive"] >= 6 else (
+        COLORS["amber"] if ov["months_inactive"] >= 3 else COLORS["green"]
+    )
+
+    cols = st.columns(5)
+    kpis = [
+        (ov["loyalty_tier"],          "Loyalty Tier",     tier_c,      ""),
+        (f"${ov['clv']:,.0f}",        "Lifetime Value",   COLORS["green"], ""),
+        (f"${ov['salary']:,.0f}",     "Annual Income",    COLORS["cyan"],  ""),
+        (f"{ov['tenure_months']}m",   "Programme Tenure", COLORS["purple"],""),
+        (f"{ov['months_inactive']}m", "Months Inactive",  inact_c, "since last flight"),
+    ]
+    for col, (val, lbl, clr, sub) in zip(cols, kpis):
+        with col:
+            st.markdown(c360_kpi(val, lbl, clr, sub), unsafe_allow_html=True)
+
+    st.markdown(c360_card(f"""
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:1rem;">
+        {"".join(f'''
+        <div>
+            <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em;
+                        color:{_muted}; margin-bottom:4px;">{lbl}</div>
+            <div style="font-weight:500; color:{_text};">{val}</div>
+        </div>''' for lbl, val in [
+            ("Customer ID",    customer_id),
+            ("Enrollment",     ov["enrollment_type"]),
+            ("Education",      ov["education"]),
+            ("Marital Status", ov["marital_status"]),
+            ("Gender",         ov["gender"]),
+            ("Province",       ov["province"]),
+        ])}
+    </div>
+    """), unsafe_allow_html=True)
+
+    # ── SECTION 2 — CHURN ANALYSIS ─────────────────────────────────────────────
+    st.markdown(c360_section("ti-alert-triangle", "Churn Analysis"), unsafe_allow_html=True)
+
+    ch_c1, ch_c2 = st.columns([2, 3])
+    with ch_c1:
+        st.plotly_chart(
+            c360_gauge(ch["probability_pct"], ch["risk_color"], "Churn Risk Score", "%"),
+            use_container_width=True
+        )
+
+    with ch_c2:
+        threshold_rows = "".join([
+            f"""<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <div style="width:8px; height:8px; border-radius:50%; background:{rc}; flex-shrink:0;"></div>
+                <span style="font-size:0.78rem; color:{_dim};">{cat}</span>
+                <span style="font-size:0.78rem; color:{_muted}; margin-left:auto;">{lo}-{hi}%</span>
+            </div>"""
+            for cat, lo, hi, rc in [
+                ("Low Risk",      0,  30, "#10B981"),
+                ("Medium Risk",   30, 60, "#F59E0B"),
+                ("High Risk",     60, 80, "#EF4444"),
+                ("Critical Risk", 80, 100,"#7C3AED"),
+            ]
+        ])
+
+        st.markdown(c360_card(f"""
+        <div style="margin-bottom:1rem;">
+            {c360_badge(ch['risk_category'], ch['risk_color'])}
+        </div>
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:2.5rem;
+                    font-weight:700; color:{ch['risk_color']}; line-height:1;">
+            {ch['probability_pct']}%
+        </div>
+        <div style="font-size:0.8rem; color:{_muted}; margin-top:4px; margin-bottom:1rem;">
+            Churn probability
+        </div>
+        <div style="font-size:0.75rem; color:{_dim}; margin-bottom:4px;">Risk level</div>
+        {c360_progress(ch['probability_pct'], ch['risk_color'])}
+        <div style="display:flex; justify-content:space-between;
+                    font-size:0.7rem; color:{_muted}; margin-top:4px;">
+            <span>0% Low</span><span>30% Medium</span>
+            <span>60% High</span><span>80% Critical</span>
+        </div>
+        <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid {_border};">
+            <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+                        color:{_muted}; margin-bottom:8px;">Risk thresholds</div>
+            {threshold_rows}
+        </div>
+        """, "margin-top:0.5rem;"), unsafe_allow_html=True)
+
+    # ── SECTION 3 — TOP CHURN DRIVERS ──────────────────────────────────────────
+    st.markdown(c360_section("ti-bulb", "Top Churn Drivers"), unsafe_allow_html=True)
+
+    dr_c1, dr_c2 = st.columns(2)
+    for i, d in enumerate(drivers):
+        with (dr_c1 if i % 2 == 0 else dr_c2):
+            st.markdown(
+                c360_driver_card(d["factor"], d["detail"], d["impact"], d["direction"], d["icon"]),
+                unsafe_allow_html=True
+            )
+
+    # ── SECTION 4 — CUSTOMER SEGMENT ───────────────────────────────────────────
+    st.markdown(c360_section("ti-users-group", "Customer Segment"), unsafe_allow_html=True)
+
+    seg_c1, seg_c2 = st.columns([3, 2])
+
+    with seg_c1:
+        st.markdown(c360_card(f"""
+        <div style="margin-bottom:0.8rem;">
+            <span style="display:inline-block; padding:0.3rem 1rem; border-radius:20px;
+                         font-size:0.82rem; font-weight:600;
+                         background:rgba(139,92,246,0.15); color:#8B5CF6;
+                         border:1px solid rgba(139,92,246,0.3);">
+                {sg['name']}
+            </span>
+        </div>
+        <div style="font-size:0.85rem; color:{_dim}; line-height:1.6; margin-bottom:1rem;">
+            {sg['description']}
+        </div>
+        <div style="padding-top:1rem; border-top:1px solid {_border};
+                    display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem;">
+            <div>
+                <div style="font-size:0.68rem; text-transform:uppercase;
+                            letter-spacing:0.08em; color:{_muted};">Segment Size</div>
+                <div style="font-family:'Space Grotesk',sans-serif; font-size:1.2rem;
+                            font-weight:700; color:{_text}; margin-top:2px;">
+                    {sg['count']:,}
+                </div>
+            </div>
+            <div>
+                <div style="font-size:0.68rem; text-transform:uppercase;
+                            letter-spacing:0.08em; color:{_muted};">Avg Churn</div>
+                <div style="font-family:'Space Grotesk',sans-serif; font-size:1.2rem;
+                            font-weight:700; color:#EF4444; margin-top:2px;">
+                    {sg['avg_churn']*100:.1f}%
+                </div>
+            </div>
+            <div>
+                <div style="font-size:0.68rem; text-transform:uppercase;
+                            letter-spacing:0.08em; color:{_muted};">Avg CLV</div>
+                <div style="font-family:'Space Grotesk',sans-serif; font-size:1.2rem;
+                            font-weight:700; color:#10B981; margin-top:2px;">
+                    ${sg['avg_clv']:,.0f}
+                </div>
+            </div>
+        </div>
+        """), unsafe_allow_html=True)
+
+    with seg_c2:
+        r_s = sg.get("r_score", 0)
+        f_s = sg.get("f_score", 0)
+        m_s = sg.get("m_score", 0)
+        if any(s > 0 for s in [r_s, f_s, m_s]):
+            cats = ["Recency", "Frequency", "Monetary"]
+            vals = [r_s * 0.8, f_s * 0.8, m_s * 0.8, r_s * 0.8]
+            fig_radar = go.Figure(go.Scatterpolar(
+                r=vals, theta=cats + [cats[0]],
+                fill="toself",
+                fillcolor="rgba(59,130,246,0.12)",
+                line=dict(color=COLORS["blue"], width=2),
+                marker=dict(color=COLORS["blue"], size=6),
+            ))
+            fig_radar.update_layout(
+                polar=dict(
+                    bgcolor="rgba(0,0,0,0)",
+                    radialaxis=dict(range=[0,5], tickcolor=_muted,
+                                   gridcolor=_grid, linecolor=_grid,
+                                   tickfont=dict(size=9, color=_muted)),
+                    angularaxis=dict(tickcolor=_muted, linecolor=_grid,
+                                    tickfont=dict(size=10, color=_dim)),
+                ),
+                showlegend=False, **PLOT_THEME, height=260,
+            )
+            st.plotly_chart(fig_radar, use_container_width=True)
+        else:
+            st.markdown(c360_card(
+                f'<div style="text-align:center; padding:2rem; color:{_muted};">RFM scores not available</div>'
+            ), unsafe_allow_html=True)
+
+    # ── SECTION 5 — FLIGHT BEHAVIOUR ───────────────────────────────────────────
+    st.markdown(c360_section("ti-plane", "Flight Behaviour"), unsafe_allow_html=True)
+
+    if not history.empty and "year_month" in history.columns:
+        fig_hist = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=["Total Flights", "Distance (km)",
+                            "Points Accumulated", "Points Redeemed"],
+            vertical_spacing=0.18, horizontal_spacing=0.1,
+        )
+        x = history["year_month"]
+
+        traces = [
+            ("total_flights",      1, 1, COLORS["blue"],  "rgba(59,130,246,0.08)"),
+            ("distance",           1, 2, COLORS["cyan"],  "rgba(6,182,212,0.08)"),
+            ("points_accumulated", 2, 1, COLORS["green"], "rgba(16,185,129,0.08)"),
+            ("points_redeemed",    2, 2, COLORS["amber"], "rgba(245,158,11,0.08)"),
+        ]
+        for col_name, row, col, color, fill in traces:
+            y = history[col_name] if col_name in history.columns else [0]*len(x)
+            fig_hist.add_trace(go.Scatter(
+                x=x, y=y, mode="lines",
+                line=dict(color=color, width=2),
+                fill="tozeroy", fillcolor=fill,
+                showlegend=False,
+            ), row=row, col=col)
+
+        for r in [1, 2]:
+            for c_idx in [1, 2]:
+                fig_hist.update_xaxes(
+                    gridcolor=_grid, linecolor=_grid,
+                    tickfont=dict(size=9, color=_muted), row=r, col=c_idx
+                )
+                fig_hist.update_yaxes(
+                    gridcolor=_grid, linecolor=_grid,
+                    tickfont=dict(size=9, color=_muted), row=r, col=c_idx
+                )
+        fig_hist.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter", color=_fcol, size=10),
+            margin=dict(t=40, b=20, l=10, r=10), height=420,
+        )
+        fig_hist.update_annotations(font=dict(size=11, color=_dim))
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+        with st.expander("View monthly activity data"):
+            disp = [c for c in ["year_month","year","month","total_flights",
+                                 "distance","points_accumulated","points_redeemed",
+                                 "dollar_cost_points_redeemed"] if c in history.columns]
+            st.dataframe(
+                history[disp].sort_values("year_month", ascending=False).head(36),
+                use_container_width=True, height=300
+            )
+    else:
+        st.info("No flight history available for this customer.")
+
+    # ── SECTION 6 — VALUE ASSESSMENT ───────────────────────────────────────────
+    st.markdown(c360_section("ti-star", "Value Assessment"), unsafe_allow_html=True)
+
+    va_c1, va_c2 = st.columns([2, 3])
+    with va_c1:
+        st.plotly_chart(
+            c360_gauge(va["score"], va["color"], "Future Value Score", ""),
+            use_container_width=True
+        )
+
+    with va_c2:
+        comp_bars = ""
+        for comp, val in va["components"].items():
+            bar_color = COLORS["red"] if val < 0 else COLORS["blue"]
+            bar_pct   = min(abs(val) / 30 * 100, 100)
+            comp_bars += f"""
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <div style="font-size:0.78rem; color:{_dim}; width:130px; flex-shrink:0;">
+                    {comp}</div>
+                <div style="background:{_border}; border-radius:99px; height:10px; flex:1;">
+                    <div style="width:{bar_pct:.0f}%; height:10px; border-radius:99px;
+                                background:{bar_color};"></div>
+                </div>
+                <div style="font-size:0.78rem; font-weight:600; color:{bar_color};
+                            width:40px; text-align:right;">{val:+.1f}</div>
+            </div>"""
+
+        st.markdown(c360_card(f"""
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:1rem;">
+            <div style="font-family:'Space Grotesk',sans-serif; font-size:2.5rem;
+                        font-weight:700; color:{va['color']}; line-height:1;">{va['score']}</div>
+            <div>
+                <div style="font-weight:600; color:{va['color']}; font-size:1rem;">
+                    {va['category']}</div>
+                <div style="font-size:0.75rem; color:{_muted};">out of 100</div>
+            </div>
+        </div>
+        <div style="font-size:0.82rem; color:{_dim}; line-height:1.6; margin-bottom:1rem;">
+            {va['description']}</div>
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+                    color:{_muted}; margin-bottom:8px;">Score components</div>
+        {comp_bars}
+        """), unsafe_allow_html=True)
+
+    # ── SECTION 7 — NEXT BEST ACTION ───────────────────────────────────────────
+    st.markdown(c360_section("ti-rocket", "Next Best Action"), unsafe_allow_html=True)
+
+    action_icons = {
+        "Complimentary Lounge Pass":                            "ti-armchair",
+        "Temporary Tier Status Upgrade (90 days)":              "ti-award",
+        "Expiring Points Reminder + Bonus Redemption Offer":    "ti-clock",
+        "Win-Back: 50% Bonus Miles on Next 2 Flights":          "ti-gift",
+        "Earn 3x Miles for Next 30 Days":                       "ti-plane-tilt",
+        "Seasonal Travel Offer (targeted destination discount)":"ti-map-pin",
+        "High-Value Customer Dedicated Account Manager Outreach":"ti-headset",
+        "No Immediate Action Required":                          "ti-check",
+    }
+    a_icon = action_icons.get(na["action"], "ti-bolt")
+
+    nba_items = "".join([
+        f"""<div style="flex:1; min-width:120px;">
+            <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em;
+                        color:{_muted}; margin-bottom:4px;">{lbl}</div>
+            <div style="font-size:0.9rem; font-weight:500; color:{vc};">{val}</div>
+        </div>"""
+        for lbl, val, vc in [
+            ("Channel",   na["channel"],                  _text),
+            ("Timing",    na["timing"],                    _text),
+            ("Goal",      na["goal"],                      _text),
+            ("Est. Lift", f"+{na['est_lift']*100:.0f}%",  "#10B981"),
+            ("Est. ROI",  f"${na['est_roi']:,.0f}",        "#10B981"),
+        ]
+    ])
+
+    render_html(f"""
+    <div style="background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(6,182,212,0.05));
+                border:1px solid rgba(59,130,246,0.25); border-radius:14px;
+                padding:1.4rem 1.6rem; margin-bottom:1rem;">
+        <div style="display:flex; align-items:flex-start; gap:14px;">
+            <div style="background:rgba(59,130,246,0.15); border-radius:10px;
+                        padding:0.7rem; font-size:1.5rem; color:#3B82F6; flex-shrink:0;">
+                <i class="ti {a_icon}"></i>
+            </div>
+            <div style="flex:1;">
+                <div style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem;
+                            font-weight:700; color:{_text}; margin-bottom:4px;">
+                    {na['action']}
+                </div>
+                <div style="font-size:0.82rem; color:{_dim}; line-height:1.6;">
+                    <b style="color:{_muted};">WHY:</b> {na['why']}
+                </div>
+            </div>
+        </div>
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:1rem;">
+            {nba_items}
+        </div>
+        <div style="margin-top:1rem; padding:0.7rem 1rem;
+                    background:rgba(16,185,129,0.08);
+                    border:1px solid rgba(16,185,129,0.2); border-radius:8px;
+                    font-size:0.8rem; color:{_dim};">
+            <b style="color:#10B981;">Expected Outcome:</b> {na['expected_outcome']}
+        </div>
+    </div>
+    """)
+
+    # ── SECTION 8 — CUSTOMER HEALTH SCORE ──────────────────────────────────────
+    st.markdown(c360_section("ti-heart-rate-monitor", "Customer Health Score"), unsafe_allow_html=True)
+
+    hs_c1, hs_c2 = st.columns([2, 3])
+    with hs_c1:
+        st.plotly_chart(
+            c360_gauge(hs["score"], hs["color"], "Health Score", ""),
+            use_container_width=True
+        )
+        render_html(f"""
+        <div style="text-align:center; margin-top:-0.5rem;">
+            <span style="background:{hs['color']}18; color:{hs['color']};
+                         border:1px solid {hs['color']}40; border-radius:20px;
+                         padding:0.3rem 1.2rem; font-size:0.9rem; font-weight:600;">
+                <i class="ti {hs['icon']}"></i> {hs['status']}
+            </span>
+        </div>
+        """)
+
+    with hs_c2:
+        comp_colors = {
+            "Activity":      COLORS["blue"],
+            "Engagement":    COLORS["cyan"],
+            "Loyalty":       COLORS["purple"],
+            "Churn Penalty": COLORS["red"],
+        }
+        health_bars = ""
+        for comp, val in hs["components"].items():
+            bc  = comp_colors.get(comp, COLORS["blue"])
+            pct = min(abs(val) / 30 * 100, 100)
+            health_bars += f"""
+            <div style="margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between;
+                            font-size:0.78rem; color:{_dim}; margin-bottom:4px;">
+                    <span>{comp}</span>
+                    <span style="color:{bc}; font-weight:600;">{val:+.1f}</span>
+                </div>
+                {c360_progress(pct, bc)}
+            </div>"""
+
+        legend = "".join([
+            f"""<div style="display:flex; align-items:center; gap:6px;
+                            font-size:0.75rem; color:{_dim};">
+                <div style="width:8px; height:8px; border-radius:50%;
+                            background:{lc}; flex-shrink:0;"></div>
+                {label}
+            </div>"""
+            for label, lc in [
+                ("75-100 Healthy",   "#10B981"),
+                ("55-74 Watchlist",  "#F59E0B"),
+                ("35-54 At Risk",    "#F97316"),
+                ("0-34 Critical",    "#EF4444"),
+            ]
+        ])
+
+        st.markdown(c360_card(f"""
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+                    color:{_muted}; margin-bottom:12px;">Score breakdown</div>
+        {health_bars}
+        <div style="margin-top:0.8rem; display:grid;
+                    grid-template-columns:1fr 1fr; gap:6px;">
+            {legend}
+        </div>
+        """), unsafe_allow_html=True)
+
+    # ── SECTION 9 — EXPORT ──────────────────────────────────────────────────────
+    st.markdown(c360_section("ti-download", "Export Customer Report"), unsafe_allow_html=True)
+
+    st.markdown(c360_card(
+        f'<div style="font-size:0.85rem; color:{_dim};">'
+        'Download a complete snapshot of this customer\'s intelligence profile.'
+        '</div>'
+    ), unsafe_allow_html=True)
+
+    ex_c1, ex_c2, _ = st.columns([1, 1, 3])
+
+    with ex_c1:
+        st.download_button(
+            "📥  Download CSV",
+            data=c360_generate_csv_bytes(profile, customer_id),
+            file_name=f"customer_{customer_id}_report.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    with ex_c2:
+        pdf_data, ext, mime = c360_generate_report_bytes(profile, customer_id)
+        st.download_button(
+            "📄  Download Report",
+            data=pdf_data,
+            file_name=f"customer_{customer_id}_report.{ext}",
+            mime=mime,
+            use_container_width=True
+        )
+
+
 # ── Load data ──────────────────────────────────────────────────────────────────
 with st.spinner("Loading loyalty intelligence…"):
     (segments, scores, recs, metrics,
      features, labels, shap_imp) = load_all_data()
 
-# Build master for convenience
 master = pd.DataFrame()
 if not scores.empty and CUSTOMER_ID_COL in scores.columns:
     master = scores.copy()
@@ -542,7 +1328,7 @@ with st.sidebar:
             "👥  Customer Segments",
             "💡  Retention Actions",
             "🔍  Explainability",
-            "🧠  Customer 360", 
+            "🧠  Customer 360",
         ],
         label_visibility="collapsed"
     )
@@ -560,9 +1346,6 @@ with st.sidebar:
         help="Switch between light and dark appearance",
     )
 
-
-
-    # Live stats in sidebar
     if not master.empty:
         total = len(master)
         churn_col_exists = "churn_probability" in master.columns
@@ -592,7 +1375,6 @@ if "Overview" in page:
     st.markdown('<div class="page-title">Executive Overview</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">Airline Loyalty Programme · Customer Intelligence Dashboard</div>', unsafe_allow_html=True)
 
-    # ── KPI Row ────────────────────────────────────────────────────────────────
     total_customers = len(master) if not master.empty else 0
     churn_prob_col  = "churn_probability" in (master.columns if not master.empty else [])
     churned_col     = "churned" in (master.columns if not master.empty else [])
@@ -623,7 +1405,6 @@ if "Overview" in page:
     """
     st.markdown(kpis_html, unsafe_allow_html=True)
 
-    # ── Charts Row 1 ──────────────────────────────────────────────────────────
     col1, col2 = st.columns([3, 2])
 
     with col1:
@@ -669,7 +1450,7 @@ if "Overview" in page:
                 labels=seg_counts["segment"],
                 values=seg_counts["count"],
                 hole=0.55,
-                marker=dict(colors=SEG_PALETTE, line=dict(color="#0A0E1A", width=2)),
+                marker=dict(colors=SEG_PALETTE, line=dict(color=_chartbg, width=2)),
                 textinfo="percent",
                 textfont_size=11,
             ))
@@ -677,19 +1458,18 @@ if "Overview" in page:
                 showlegend=True,
                 legend=dict(
                     orientation="v", x=1.0, y=0.5,
-                    font=dict(size=10, color="#94A3B8"),
+                    font=dict(size=10, color=_dim),
                     bgcolor="rgba(0,0,0,0)"
                 ),
                 annotations=[dict(
                     text=f"{total_customers:,}<br>members",
                     x=0.5, y=0.5, font_size=14,
-                    font_color="#F1F5F9", showarrow=False
+                    font_color=_text, showarrow=False
                 )],
                 **PLOT_THEME
             )
             st.plotly_chart(fig2, use_container_width=True)
 
-    # ── Charts Row 2 ──────────────────────────────────────────────────────────
     col3, col4 = st.columns(2)
 
     with col3:
@@ -738,7 +1518,7 @@ if "Overview" in page:
                 text=[f"{v:,}  ({v/max(total_customers,1)*100:.1f}%)"
                       for v in tiers.values],
                 textposition="outside",
-                textfont=dict(color="#94A3B8", size=11),
+                textfont=dict(color=_dim, size=11),
             ))
             fig4.update_layout(
                 xaxis_title="Customers",
@@ -747,7 +1527,6 @@ if "Overview" in page:
             )
             st.plotly_chart(fig4, use_container_width=True)
 
-    # ── ROC Curve image ───────────────────────────────────────────────────────
     roc_path = os.path.join(PLOTS_DIR, "roc_curves.png")
     cm_path  = os.path.join(PLOTS_DIR, "confusion_matrices.png")
 
@@ -775,7 +1554,6 @@ elif "Churn" in page:
         st.warning("⚠️  No data found. Run `python run_pipeline.py` first.")
         st.stop()
 
-    # ── Filter bar ────────────────────────────────────────────────────────────
     section_header("🔎", "Filters")
     fcol1, fcol2, fcol3, fcol4 = st.columns([2, 2, 2, 1])
 
@@ -797,7 +1575,6 @@ elif "Churn" in page:
             label_visibility="visible"
         )
 
-    # ── Apply filters ─────────────────────────────────────────────────────────
     df_view = master.copy()
 
     if "churn_probability" in df_view.columns:
@@ -819,13 +1596,11 @@ elif "Churn" in page:
     if search_id.strip() and CUSTOMER_ID_COL in df_view.columns:
         df_view = df_view[df_view[CUSTOMER_ID_COL].astype(str).str.contains(search_id.strip(), case=False)]
 
-    # ── Result count ──────────────────────────────────────────────────────────
     extra = f"of {len(master):,}" if len(df_view) < len(master) else ""
     st.markdown(f"""
     <div class="result-pill">Showing <b>{len(df_view):,}</b> customers {extra}</div>
     """, unsafe_allow_html=True)
 
-    # ── Table ─────────────────────────────────────────────────────────────────
     section_header("📋", "Customer Risk Table")
 
     display_cols = [CUSTOMER_ID_COL, "churn_probability", "segment_name",
@@ -855,7 +1630,6 @@ elif "Churn" in page:
             mime="text/csv"
         )
 
-    # ── Distribution Charts ────────────────────────────────────────────────────
     section_header("📊", "Risk Analysis")
     ch1, ch2 = st.columns(2)
 
@@ -911,7 +1685,6 @@ elif "Churn" in page:
             )
             st.plotly_chart(fig6, use_container_width=True)
 
-    # ── Individual customer deep-dive ─────────────────────────────────────────
     if search_id.strip() and len(df_view) == 1:
         section_header("👤", f"Customer Profile: {search_id}")
         row = df_view.iloc[0]
@@ -928,29 +1701,28 @@ elif "Churn" in page:
             mi = row.get("months_inactive", "—")
             st.metric("Months Inactive", str(mi) if pd.notna(mi) else "—")
 
-        # Gauge
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number",
             value=p * 100,
-            number={"suffix": "%", "font": {"size": 28, "color": "#F1F5F9"}},
+            number={"suffix": "%", "font": {"size": 28, "color": _text}},
             gauge={
-                "axis": {"range": [0, 100], "tickcolor": "#64748B",
-                         "tickfont": {"color": "#64748B"}},
+                "axis": {"range": [0, 100], "tickcolor": _muted,
+                         "tickfont": {"color": _muted}},
                 "bar":  {"color": COLORS['red'] if p > HIGH_CHURN_RISK_THRESHOLD
                          else (COLORS['amber'] if p > MEDIUM_CHURN_RISK_THRESHOLD
                                else COLORS['green'])},
-                "bgcolor": "#111827",
+                "bgcolor": _chartbg,
                 "steps": [
                     {"range": [0, 40],   "color": "rgba(16,185,129,0.1)"},
                     {"range": [40, 70],  "color": "rgba(245,158,11,0.1)"},
                     {"range": [70, 100], "color": "rgba(239,68,68,0.1)"},
                 ],
                 "threshold": {
-                    "line": {"color": "#F1F5F9", "width": 2},
+                    "line": {"color": _text, "width": 2},
                     "thickness": 0.75, "value": p * 100
                 },
             },
-            title={"text": "Churn Risk Score", "font": {"color": "#94A3B8", "size": 13}},
+            title={"text": "Churn Risk Score", "font": {"color": _dim, "size": 13}},
         ))
         fig_gauge.update_layout(height=280, **PLOT_THEME)
         _, gcol, _ = st.columns([1, 2, 1])
@@ -977,7 +1749,6 @@ elif "Segment" in page:
             scores[[CUSTOMER_ID_COL, "churn_probability"]], on=CUSTOMER_ID_COL, how="left"
         )
 
-    # ── Segment selector ──────────────────────────────────────────────────────
     all_segs = sorted(seg_data["segment_name"].dropna().unique().tolist())
     selected = st.multiselect(
         "Select Segments", all_segs, default=all_segs,
@@ -985,7 +1756,6 @@ elif "Segment" in page:
     )
     filtered = seg_data[seg_data["segment_name"].isin(selected)] if selected else seg_data
 
-    # ── Segment KPIs ──────────────────────────────────────────────────────────
     kpi_html = '<div class="kpi-grid">'
     for i, seg in enumerate(all_segs):
         n = int((seg_data["segment_name"] == seg).sum())
@@ -1001,7 +1771,6 @@ elif "Segment" in page:
     kpi_html += "</div>"
     st.markdown(kpi_html, unsafe_allow_html=True)
 
-    # ── Sunburst / treemap overview ────────────────────────────────────────────
     section_header("☀️", "Segment Composition")
     if "segment_name" in filtered.columns:
         comp = filtered["segment_name"].value_counts().reset_index()
@@ -1010,11 +1779,10 @@ elif "Segment" in page:
             comp, path=["segment"], values="count",
             color="count", color_continuous_scale="Blues",
         )
-        fig_sb.update_traces(marker=dict(line=dict(color="#0A0E1A", width=2)))
+        fig_sb.update_traces(marker=dict(line=dict(color=_chartbg, width=2)))
         fig_sb.update_layout(**PLOT_THEME, height=320, coloraxis_showscale=False)
         st.plotly_chart(fig_sb, use_container_width=True)
 
-    # ── Charts ────────────────────────────────────────────────────────────────
     ch1, ch2 = st.columns(2)
 
     with ch1:
@@ -1058,7 +1826,6 @@ elif "Segment" in page:
             )
             st.plotly_chart(fig8, use_container_width=True)
 
-    # ── Churn risk per segment ─────────────────────────────────────────────────
     section_header("⚠️", "Average Churn Risk by Segment")
     if "churn_probability" in filtered.columns:
         risk_by_seg = (
@@ -1076,12 +1843,12 @@ elif "Segment" in page:
                 color=risk_by_seg["avg_churn_prob"],
                 colorscale=[[0, "#10B981"], [0.5, "#F59E0B"], [1, "#EF4444"]],
                 showscale=True,
-                colorbar=dict(title="Risk", tickfont=dict(color="#94A3B8")),
+                colorbar=dict(title="Risk", tickfont=dict(color=_dim)),
                 line=dict(width=0)
             ),
             text=[f"{v:.1%}" for v in risk_by_seg["avg_churn_prob"]],
             textposition="outside",
-            textfont=dict(color="#94A3B8"),
+            textfont=dict(color=_dim),
         ))
         fig9.update_layout(
             xaxis_title="Average Churn Probability",
@@ -1090,7 +1857,6 @@ elif "Segment" in page:
         )
         st.plotly_chart(fig9, use_container_width=True)
 
-    # ── Summary table ─────────────────────────────────────────────────────────
     section_header("📋", "Segment Summary Statistics")
     sum_cols = ["segment_name", "recency", "frequency", "monetary",
                 "R_score", "F_score", "M_score", "RFM_score", "churn_probability"]
@@ -1099,7 +1865,6 @@ elif "Segment" in page:
         tbl = filtered[avail].groupby("segment_name").agg(["mean", "count"]).round(2)
         st.dataframe(tbl, use_container_width=True)
 
-    # ── Radar charts ──────────────────────────────────────────────────────────
     radar_path = os.path.join(PLOTS_DIR, "segment_radar_charts.png")
     if os.path.exists(radar_path):
         section_header("🕸️", "RFM Radar Profiles")
@@ -1128,7 +1893,6 @@ elif "Retention" in page:
         st.warning("⚠️  No recommendations found. Run `python run_pipeline.py` first.")
         st.stop()
 
-    # ── Summary KPIs ──────────────────────────────────────────────────────────
     total_roi = float(recs["est_roi"].sum()) if "est_roi" in recs.columns else 0
     avg_roi   = float(recs["est_roi"].mean()) if "est_roi" in recs.columns else 0
     n_high    = int((recs["risk_tier"] == "High Risk").sum()) if "risk_tier" in recs.columns else 0
@@ -1144,7 +1908,6 @@ elif "Retention" in page:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Filters ────────────────────────────────────────────────────────────────
     section_header("🔎", "Filters")
     fc1, fc2, fc3 = st.columns(3)
 
@@ -1172,7 +1935,6 @@ elif "Retention" in page:
     if seg_opt  != "All" and "segment_name" in df_r.columns: df_r = df_r[df_r["segment_name"] == seg_opt]
     if chan_opt != "All" and "channel"      in df_r.columns: df_r = df_r[df_r["channel"]      == chan_opt]
 
-    # ── Charts row ─────────────────────────────────────────────────────────────
     rc1, rc2 = st.columns(2)
 
     with rc1:
@@ -1190,7 +1952,7 @@ elif "Retention" in page:
                 ),
                 text=ac["count"],
                 textposition="outside",
-                textfont=dict(color="#94A3B8"),
+                textfont=dict(color=_dim),
             ))
             fig10.update_layout(**themed(
                 xaxis_title="Customers",
@@ -1233,7 +1995,6 @@ elif "Retention" in page:
             ))
             st.plotly_chart(fig11, use_container_width=True)
 
-    # ── Recommendations table ─────────────────────────────────────────────────
     section_header("📋", f"Recommendation Table  ({len(df_r):,} customers)")
     show = [CUSTOMER_ID_COL, "segment_name", "risk_tier", "churn_probability",
             "action", "channel", "timing", "cost_usd", "est_retention_lift", "est_roi"]
@@ -1260,7 +2021,6 @@ elif "Retention" in page:
             mime="text/csv"
         )
 
-    # ── Action playbook ───────────────────────────────────────────────────────
     section_header("📖", "Action Playbook")
     playbook = {
         "🛋️  Lounge Pass":       ("Complimentary lounge access", COLORS['blue']),
@@ -1286,7 +2046,6 @@ elif "Explain" in page:
     st.markdown('<div class="page-title">Explainability Insights</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">SHAP-based model explanations · Understand why customers churn</div>', unsafe_allow_html=True)
 
-    # ── Global SHAP ────────────────────────────────────────────────────────────
     section_header("🌍", "Global Churn Drivers (SHAP)")
 
     if not shap_imp.empty and "feature" in shap_imp.columns:
@@ -1300,12 +2059,12 @@ elif "Explain" in page:
                 color=top["mean_abs_shap"],
                 colorscale=[[0, COLORS['blue']], [0.5, COLORS['amber']], [1, COLORS['red']]],
                 showscale=True,
-                colorbar=dict(title="SHAP", tickfont=dict(color="#94A3B8")),
+                colorbar=dict(title="SHAP", tickfont=dict(color=_dim)),
                 line=dict(width=0)
             ),
             text=[f"{v:.4f}" for v in top["mean_abs_shap"]],
             textposition="outside",
-            textfont=dict(color="#94A3B8", size=10),
+            textfont=dict(color=_dim, size=10),
         ))
         fig12.update_layout(**themed(
             xaxis_title="Mean |SHAP Value|",
@@ -1324,13 +2083,11 @@ elif "Explain" in page:
         else:
             st.info("Run the pipeline with SHAP enabled to generate explanations.")
 
-    # ── SHAP Beeswarm ──────────────────────────────────────────────────────────
     beeswarm_path = os.path.join(PLOTS_DIR, "shap_beeswarm.png")
     if os.path.exists(beeswarm_path):
         section_header("🐝", "SHAP Beeswarm Summary")
         st.image(beeswarm_path, use_column_width=True)
 
-    # ── Feature importance plots ───────────────────────────────────────────────
     fi_rf  = os.path.join(PLOTS_DIR, "feature_importance_random_forest.png")
     fi_xgb = os.path.join(PLOTS_DIR, "feature_importance_xgboost.png")
 
@@ -1346,7 +2103,6 @@ elif "Explain" in page:
                 st.markdown("**XGBoost**")
                 st.image(fi_xgb, use_column_width=True)
 
-    # ── Business interpretation ────────────────────────────────────────────────
     section_header("💼", "Business Interpretation of Key Features")
 
     interpretations = [
@@ -1372,17 +2128,16 @@ elif "Explain" in page:
     for i, (feat, color, interp) in enumerate(interpretations):
         with ic_cols[i % 2]:
             st.markdown(insight_card(feat, interp, color), unsafe_allow_html=True)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 6 — CUSTOMER 360
 # ══════════════════════════════════════════════════════════════════════════════
+
 elif "360" in page:
-    # Import and render the Customer 360 page
-    try:
-        from pages.customer_360_page import render as render_360
-        render_360()
-    except Exception as e:
-        st.error(f"Customer 360 failed to load: {e}")
-        st.exception(e)
+    render_customer_360()
+
+
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="app-footer">
