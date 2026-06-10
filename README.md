@@ -115,8 +115,11 @@ cd skyloyalty-intelligence
 ```bash
 pip install -r requirements.txt
 ```
-
-### 3. Run Application
+### 3. Train Model
+```bash
+python run_pipeline.py
+```
+### 4. Run Application
 
 ```bash
 streamlit run app.py
