@@ -673,8 +673,8 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
             pdf.set_text_color(148, 163, 184)
             pdf.cell(60, 6, str(label), ln=False)
             pdf.set_text_color(241, 245, 249)
-            # FIXED: Remove/replace Unicode characters that latin-1 can't handle
-            safe_value = str(value).replace('\u2014', '-').replace('\u2013', '-').replace('\u2022', '*')
+            # FIXED: Sanitize Unicode characters that latin-1 cannot encode
+            safe_value = str(value).replace('\u2014', '-').replace('\u2013', '-').replace('\u2022', '*').replace('—', '-')
             pdf.cell(0, 6, safe_value, ln=True)
 
         ov = profile["overview"]
@@ -686,85 +686,92 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
 
         h2("1. CUSTOMER OVERVIEW")
         pdf.ln(2)
-        row("Loyalty Tier",    ov["loyalty_tier"])
-        row("Enrollment Type", ov["enrollment_type"])
-        row("Education",       ov["education"])
-        row("Marital Status",  ov["marital_status"])
-        row("Province",        ov["province"])
-        row("Income",          f"${ov['salary']:,.0f}")
-        row("CLV",             f"${ov['clv']:,.2f}")
-        row("Tenure",          f"{ov['tenure_months']} months")
+        row("Loyalty Tier",    ov.get("loyalty_tier", ""))
+        row("Enrollment Type", ov.get("enrollment_type", ""))
+        row("Education",       ov.get("education", ""))
+        row("Marital Status",  ov.get("marital_status", ""))
+        row("Province",        ov.get("province", ""))
+        row("Income",          f"${ov.get('salary', 0):,.0f}")
+        row("CLV",             f"${ov.get('clv', 0):,.2f}")
+        row("Tenure",          f"{ov.get('tenure_months', 0)} months")
         pdf.ln(4)
 
         h2("2. CHURN ANALYSIS")
         pdf.ln(2)
-        row("Churn Probability", f"{ch['probability_pct']}%")
-        row("Risk Category",     ch["risk_category"])
-        row("Months Inactive",   ch["months_inactive"])
+        row("Churn Probability", f"{ch.get('probability_pct', 0)}%")
+        row("Risk Category",     ch.get("risk_category", ""))
+        row("Months Inactive",   ch.get("months_inactive", ""))
         pdf.ln(4)
 
         h2("3. TOP CHURN DRIVERS")
         pdf.ln(2)
-        for d in profile["drivers"]:
-            row(d["factor"], d["detail"])
+        for d in profile.get("drivers", []):
+            row(d.get("factor", ""), d.get("detail", ""))
         pdf.ln(4)
 
         h2("4. CUSTOMER SEGMENT")
         pdf.ln(2)
-        row("Segment",       sg["name"])
-        row("Segment Size",  f"{sg['count']:,} customers")
-        row("Avg Churn",     f"{sg['avg_churn']*100:.1f}%")
-        row("Avg CLV",       f"${sg['avg_clv']:,.0f}")
-        row("RFM Score",     f"{sg['rfm_score']:.1f}")
+        row("Segment",       sg.get("name", ""))
+        row("Segment Size",  f"{sg.get('count', 0):,} customers")
+        row("Avg Churn",     f"{sg.get('avg_churn', 0)*100:.1f}%")
+        row("Avg CLV",       f"${sg.get('avg_clv', 0):,.0f}")
+        row("RFM Score",     f"{sg.get('rfm_score', 0):.1f}")
         pdf.ln(4)
 
         h2("5. VALUE ASSESSMENT")
         pdf.ln(2)
-        row("Future Value Score", f"{va['score']}/100")
-        row("Category",           va["category"])
+        row("Future Value Score", f"{va.get('score', 0)}/100")
+        row("Category",           va.get("category", ""))
         pdf.ln(4)
 
         h2("6. NEXT BEST ACTION")
         pdf.ln(2)
-        row("Action",    na["action"])
-        row("Channel",   na["channel"])
-        row("Timing",    na["timing"])
-        row("Est. Lift", f"{na['est_lift']*100:.0f}%")
-        row("Est. ROI",  f"${na['est_roi']:,.0f}")
+        row("Action",    na.get("action", ""))
+        row("Channel",   na.get("channel", ""))
+        row("Timing",    na.get("timing", ""))
+        row("Est. Lift", f"{na.get('est_lift', 0)*100:.0f}%")
+        row("Est. ROI",  f"${na.get('est_roi', 0):,.0f}")
         pdf.ln(4)
 
         h2("7. HEALTH SCORE")
         pdf.ln(2)
-        row("Health Score", f"{hs['score']}/100")
-        row("Status",       hs["status"])
+        row("Health Score", f"{hs.get('score', 0)}/100")
+        row("Status",       hs.get("status", ""))
 
-        return bytes(pdf.output()), "pdf", "application/pdf"
+        # FINAL FIX: Ensure bytes output
+        output = pdf.output()
+        if isinstance(output, str):
+            output = output.encode("latin1", errors='replace')
 
-    except ImportError:
+        return output, "pdf", "application/pdf"
+
+    except Exception as e:
+        # Fallback to plain text if PDF fails
         lines = [
             "CUSTOMER INTELLIGENCE REPORT",
-            f"Customer ID: {cid}", "=" * 50, "",
+            f"Customer ID: {cid}",
+            "=" * 50, "",
             "1. OVERVIEW",
-            f"  Loyalty Tier:  {profile['overview']['loyalty_tier']}",
-            f"  CLV:           ${profile['overview']['clv']:,.2f}",
-            f"  Tenure:        {profile['overview']['tenure_months']} months",
-            f"  Province:      {profile['overview']['province']}", "",
+            f"  Loyalty Tier:  {profile.get('overview',{}).get('loyalty_tier','')}",
+            f"  CLV:           ${profile.get('overview',{}).get('clv',0):,.2f}",
+            f"  Tenure:        {profile.get('overview',{}).get('tenure_months',0)} months",
+            f"  Province:      {profile.get('overview',{}).get('province','')}", "",
             "2. CHURN",
-            f"  Probability:   {profile['churn']['probability_pct']}%",
-            f"  Risk Category: {profile['churn']['risk_category']}", "",
+            f"  Probability:   {profile.get('churn',{}).get('probability_pct',0)}%",
+            f"  Risk Category: {profile.get('churn',{}).get('risk_category','')}", "",
             "3. SEGMENT",
-            f"  Name:          {profile['segment']['name']}",
-            f"  RFM Score:     {profile['segment']['rfm_score']}", "",
+            f"  Name:          {profile.get('segment',{}).get('name','')}",
+            f"  RFM Score:     {profile.get('segment',{}).get('rfm_score',0)}", "",
             "4. VALUE",
-            f"  Score:         {profile['value']['score']}/100",
-            f"  Category:      {profile['value']['category']}", "",
+            f"  Score:         {profile.get('value',{}).get('score',0)}/100",
+            f"  Category:      {profile.get('value',{}).get('category','')}", "",
             "5. NEXT BEST ACTION",
-            f"  Action:        {profile['next_action']['action']}",
-            f"  Channel:       {profile['next_action']['channel']}",
-            f"  Timing:        {profile['next_action']['timing']}", "",
+            f"  Action:        {profile.get('next_action',{}).get('action','')}",
+            f"  Channel:       {profile.get('next_action',{}).get('channel','')}",
+            f"  Timing:        {profile.get('next_action',{}).get('timing','')}", "",
             "6. HEALTH",
-            f"  Score:         {profile['health']['score']}/100",
-            f"  Status:        {profile['health']['status']}",
+            f"  Score:         {profile.get('health',{}).get('score',0)}/100",
+            f"  Status:        {profile.get('health',{}).get('status','')}",
         ]
         return "\n".join(lines).encode("utf-8"), "txt", "text/plain"
 
