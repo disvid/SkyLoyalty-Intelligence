@@ -13,11 +13,10 @@ __pycache__/
 .Python
 
 # Output files (optional — remove if you want to track these)
-outputs/
+
 
 # Model files
-*.pkl
-*.joblib
+
 
 # Data files (optional — remove if you want to track these)
 data/

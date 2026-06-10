@@ -1,0 +1,8 @@
+,recency,recency,recency,frequency,frequency,frequency,monetary,monetary,monetary,R_score,R_score,R_score,F_score,F_score,F_score,M_score,M_score,M_score,RFM_score,RFM_score,RFM_score
+,mean,median,count,mean,median,count,mean,median,count,mean,median,count,mean,median,count,mean,median,count,mean,median,count
+segment_name,,,,,,,,,,,,,,,,,,,,,
+At Risk Premium,15.88,16.0,689,11.97,11.0,689,17982.88,16530.0,689,4.0,4.0,689,3.85,5.0,689,3.87,5.0,689,11.73,14.0,689
+Dormant Members,1.37,1.0,3225,23.43,24.0,3225,34283.24,35492.0,3225,4.67,5.0,3225,2.3,2.0,3225,2.33,2.0,3225,9.3,9.0,3225
+Frequent Redeemers,0.64,0.0,6062,35.69,36.0,6062,53217.77,53268.5,6062,4.84,5.0,6062,3.42,4.0,6062,3.4,3.0,6062,11.66,12.0,6062
+High Value Loyalists,0.31,0.0,2846,2.95,0.0,2846,4353.72,0.0,2846,4.93,5.0,2846,4.97,5.0,2846,4.96,5.0,2846,14.86,15.0,2846
+Seasonal Travelers,0.46,0.0,3915,47.01,46.0,3915,72513.33,70786.0,3915,4.9,5.0,3915,1.54,1.0,3915,1.36,1.0,3915,7.79,7.0,3915
