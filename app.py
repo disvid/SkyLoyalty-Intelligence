@@ -644,7 +644,7 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
         class PDF(FPDF):
             def header(self):
                 self.set_font("Helvetica", "B", 14)
-                self.set_text_color(59, 130, 246)
+                self.set_text_color(30, 64, 175)  # Dark blue
                 self.cell(0, 10, f"Customer Intelligence Report - {cid}", ln=True)
                 self.set_draw_color(30, 45, 69)
                 self.line(10, 20, 200, 20)
@@ -661,16 +661,16 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
         pdf.set_auto_page_break(auto=True, margin=15)
 
         def h2(text):
-            pdf.set_font("Helvetica", "B", 11)
-            pdf.set_text_color(59, 130, 246)
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.set_text_color(30, 64, 175)   # Dark blue for headings
             pdf.cell(0, 8, text, ln=True)
-            pdf.set_text_color(241, 245, 249)
+            pdf.set_text_color(30, 30, 30)    # Dark gray for body
 
         def row(label, value):
             pdf.set_font("Helvetica", "", 10)
-            pdf.set_text_color(148, 163, 184)
+            pdf.set_text_color(80, 80, 80)    # Medium gray for labels
             pdf.cell(60, 6, str(label), ln=False)
-            pdf.set_text_color(241, 245, 249)
+            pdf.set_text_color(30, 30, 30)    # Dark black for values
             safe_value = str(value).replace('—', '-').replace('–', '-').replace('•', '*')
             pdf.cell(0, 6, safe_value, ln=True)
 
@@ -735,16 +735,16 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
         row("Health Score", f"{hs.get('score', 0)}/100")
         row("Status",       hs.get("status", ""))
 
-        # FIXED: Reliable way to get bytes
-        pdf_output = pdf.output(dest='S')   # 'S' = return as string
+        # Reliable bytes output
+        pdf_output = pdf.output(dest='S')
         if isinstance(pdf_output, str):
-            pdf_bytes = pdf_output.encode('latin1', errors='replace')
+            pdf_bytes = pdf_output.encode("latin1", errors='replace')
         else:
             pdf_bytes = pdf_output
 
         return pdf_bytes, "pdf", "application/pdf"
 
-    except Exception as e:
+    except Exception:
         # TXT Fallback
         lines = [
             "CUSTOMER INTELLIGENCE REPORT",
