@@ -1,8 +1,9 @@
 streamlit
 pandas
-plotly
 numpy
+plotly
 scikit-learn
 xgboost
 shap
-fpdf   # if you use PDF export
+fpdf
+matplotlib
