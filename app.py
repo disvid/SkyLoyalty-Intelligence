@@ -673,7 +673,9 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
             pdf.set_text_color(148, 163, 184)
             pdf.cell(60, 6, str(label), ln=False)
             pdf.set_text_color(241, 245, 249)
-            pdf.cell(0, 6, str(value), ln=True)
+            # FIXED: Remove/replace Unicode characters that latin-1 can't handle
+            safe_value = str(value).replace('\u2014', '-').replace('\u2013', '-').replace('\u2022', '*')
+            pdf.cell(0, 6, safe_value, ln=True)
 
         ov = profile["overview"]
         ch = profile["churn"]
@@ -765,7 +767,6 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
             f"  Status:        {profile['health']['status']}",
         ]
         return "\n".join(lines).encode("utf-8"), "txt", "text/plain"
-
 
 # ════════════════════════════════════════════════════════════════════════════
 # CUSTOMER 360 — main render function (theme-aware, fully integrated)
