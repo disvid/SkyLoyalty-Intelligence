@@ -673,16 +673,15 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
             pdf.set_text_color(148, 163, 184)
             pdf.cell(60, 6, str(label), ln=False)
             pdf.set_text_color(241, 245, 249)
-            # FIXED: Sanitize Unicode characters that latin-1 cannot encode
-            safe_value = str(value).replace('\u2014', '-').replace('\u2013', '-').replace('\u2022', '*').replace('—', '-')
+            safe_value = str(value).replace('—', '-').replace('–', '-').replace('•', '*')
             pdf.cell(0, 6, safe_value, ln=True)
 
-        ov = profile["overview"]
-        ch = profile["churn"]
-        sg = profile["segment"]
-        va = profile["value"]
-        hs = profile["health"]
-        na = profile["next_action"]
+        ov = profile.get("overview", {})
+        ch = profile.get("churn", {})
+        sg = profile.get("segment", {})
+        va = profile.get("value", {})
+        hs = profile.get("health", {})
+        na = profile.get("next_action", {})
 
         h2("1. CUSTOMER OVERVIEW")
         pdf.ln(2)
@@ -738,19 +737,21 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
         row("Health Score", f"{hs.get('score', 0)}/100")
         row("Status",       hs.get("status", ""))
 
-        # FINAL FIX: Ensure bytes output
+        # Final output handling
         output = pdf.output()
         if isinstance(output, str):
             output = output.encode("latin1", errors='replace')
+        elif not isinstance(output, (bytes, bytearray)):
+            output = str(output).encode("latin1", errors='replace')
 
         return output, "pdf", "application/pdf"
 
-    except Exception as e:
-        # Fallback to plain text if PDF fails
+    except Exception:
+        # TXT Fallback
         lines = [
             "CUSTOMER INTELLIGENCE REPORT",
             f"Customer ID: {cid}",
-            "=" * 50, "",
+            "=" * 60, "",
             "1. OVERVIEW",
             f"  Loyalty Tier:  {profile.get('overview',{}).get('loyalty_tier','')}",
             f"  CLV:           ${profile.get('overview',{}).get('clv',0):,.2f}",
@@ -774,7 +775,6 @@ def c360_generate_report_bytes(profile: dict, cid: str) -> tuple:
             f"  Status:        {profile.get('health',{}).get('status','')}",
         ]
         return "\n".join(lines).encode("utf-8"), "txt", "text/plain"
-
 # ════════════════════════════════════════════════════════════════════════════
 # CUSTOMER 360 — main render function (theme-aware, fully integrated)
 # ════════════════════════════════════════════════════════════════════════════
