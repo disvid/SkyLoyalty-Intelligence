@@ -73,39 +73,6 @@ Interactive Dashboard & Reports
 
 ---
 
-## Project Structure
-
-```text
-SkyLoyalty-Intelligence/
-│
-├── app.py
-├── config.py
-├── requirements.txt
-├── runtime.txt
-├── README.md
-│
-├── data/
-│
-├── outputs/
-│   ├── models/
-│   ├── plots/
-│   └── reports/
-│
-└── src/
-    ├── load_data.py
-    ├── clean_data.py
-    ├── feature_engineering.py
-    ├── segmentation.py
-    ├── churn_model.py
-    ├── customer_360.py
-    ├── retention_engine.py
-    ├── explainability.py
-    ├── churn_labels.py
-    └── utils.py
-```
-
----
-
 ## Tech Stack
 
 ### Frontend
